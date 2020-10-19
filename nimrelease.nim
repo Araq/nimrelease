@@ -40,6 +40,7 @@ let hash = paramStr(2) # "2019-11-27-version-1-0-c8998c4"
 
 const
   baseUrl = "https://github.com/nim-lang/nightlies/releases/download/"
+  hotPatch = "-1"
 
 proc exec(cmd: string) =
   if execShellCmd(cmd) != 0: quit("FAILURE: " & cmd)
@@ -52,22 +53,28 @@ template withDir(dir, body) =
   finally:
     setCurrentDir(old)
 
-proc wget(dest: string; src = "") =
+proc wget(dest, src: string) =
   let source = if src.len == 0: dest else: src
   exec(&"wget --output-document={dest} {baseUrl}{hash}/{source}")
   exec(&"sha256sum {dest} > {dest}.sha256")
 
+proc source(suffix: string): string =
+  result = "nim-" & nimver & hotPatch & suffix
+
+proc dest(suffix: string): string =
+  result = "nim-" & nimver & suffix
+
 withDir("/var/www/nim-lang.org/download"):
   # Unix tarball:
-  wget("nim-" & nimver & ".tar.xz", "nim-" & nimver & ".tar.xz")
+  wget(dest ".tar.xz", source ".tar.xz")
 
   # Windows:
-  wget("nim-" & nimver & "_x32.zip", "nim-" & nimver & "-windows_x32.zip")
-  wget("nim-" & nimver & "_x64.zip", "nim-" & nimver & "-windows_x64.zip")
+  wget(dest "_x32.zip", source "-windows_x32.zip")
+  wget(dest "_x64.zip", source "-windows_x64.zip")
 
   # Linux
-  wget("nim-" & nimver & "-linux_x32.tar.xz")
-  wget("nim-" & nimver & "-linux_x64.tar.xz")
+  wget(dest "-linux_x32.tar.xz", source "-linux_x32.tar.xz")
+  wget(dest "-linux_x64.tar.xz", source "-linux_x64.tar.xz")
 
 # Updating links to the current docs:
 withDir("/var/www/nim-lang.org/"):
