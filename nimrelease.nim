@@ -1,5 +1,5 @@
 
-import os, strformat
+import os, strformat, strscans
 
 #[
 Based on these instructions:
@@ -64,31 +64,66 @@ proc source(suffix: string): string =
 proc dest(suffix: string): string =
   result = "nim-" & nimver & suffix
 
-withDir("/var/www/nim-lang.org/download"):
-  # Unix tarball:
-  wget(dest ".tar.xz", source ".tar.xz")
+proc downloadTarballs =
+  withDir("/var/www/nim-lang.org/download"):
+    # Unix tarball:
+    wget(dest ".tar.xz", source ".tar.xz")
 
-  # Windows:
-  wget(dest "_x32.zip", source "-windows_x32.zip")
-  wget(dest "_x64.zip", source "-windows_x64.zip")
+    # Windows:
+    wget(dest "_x32.zip", source "-windows_x32.zip")
+    wget(dest "_x64.zip", source "-windows_x64.zip")
 
-  # Linux
-  wget(dest "-linux_x32.tar.xz", source "-linux_x32.tar.xz")
-  wget(dest "-linux_x64.tar.xz", source "-linux_x64.tar.xz")
+    # Linux
+    wget(dest "-linux_x32.tar.xz", source "-linux_x32.tar.xz")
+    wget(dest "-linux_x64.tar.xz", source "-linux_x64.tar.xz")
 
-# Updating links to the current docs:
-withDir("/var/www/nim-lang.org/"):
-  exec(&"ln -sfn {nimver} docs")
-  # verify this worked:
-  exec("ls -la | grep \"docs\"")
+proc builddocs() =
+  var major = ""
+  var minor = ""
+  assert scanf(nimver, "$+.$+.", major, minor)
+  let nimdocs = &"nimdocs-{nimver}"
+  if not dirExists(nimdocs):
+    exec("git clone https://github.com/nim-lang/nim " & nimdocs)
 
-withDir("/var/www/nim-lang.org/download"):
-  exec(&"cp nim-{nimver}.tar.xz nim-{nimver}_copy.tar.xz")
-  exec(&"unxz nim-{nimver}_copy.tar.xz")
-  exec(&"gzip --best nim-{nimver}_copy.tar")
-  exec(&"mv nim-{nimver}_copy.tar.gz nim-{nimver}.tar.gz")
-  exec(&"sha256sum nim-{nimver}.tar.gz > nim-{nimver}.tar.gz.sha256")
+  const dotslash = when defined(posix): "./" else: ""
 
-# Update the stable channel:
-withDir("/var/www/nim-lang.org/channels"):
-  writeFile("stable", nimver & "\n")
+  withDir(&"nimdocs-{nimver}"):
+    exec(&"git checkout version-{major}-{minor}")
+    exec(&"git pull origin version-{major}-{minor}")
+
+    # build a version of 'koch' that uses the proper version number
+    exec("nim c koch.nim")
+    # build a version of 'nim' that uses the proper version number
+    exec(dotslash & "koch boot -d:release")
+    # build the documentation:
+    exec(dotslash & "koch docs0")
+    copyDir("web/upload/" & nimver, "/var/www/nim-lang.org/" & nimver)
+
+proc updateLinks =
+  # Updating links to the current docs:
+  withDir("/var/www/nim-lang.org/"):
+    exec(&"ln -sfn {nimver} docs")
+    # verify this worked:
+    exec("ls -la | grep \"docs\"")
+
+proc buildTarballs =
+  withDir("/var/www/nim-lang.org/download"):
+    exec(&"cp nim-{nimver}.tar.xz nim-{nimver}_copy.tar.xz")
+    exec(&"unxz nim-{nimver}_copy.tar.xz")
+    exec(&"gzip --best nim-{nimver}_copy.tar")
+    exec(&"mv nim-{nimver}_copy.tar.gz nim-{nimver}.tar.gz")
+    exec(&"sha256sum nim-{nimver}.tar.gz > nim-{nimver}.tar.gz.sha256")
+
+proc updateStableChannel =
+  # Update the stable channel:
+  withDir("/var/www/nim-lang.org/channels"):
+    writeFile("stable", nimver & "\n")
+
+proc main =
+  builddocs()
+  downloadTarballs()
+  updateLinks()
+  buildTarballs()
+  updateStableChannel()
+
+main()
