@@ -1,5 +1,5 @@
 
-import os, strformat, strscans
+import os, strformat, strscans, strutils, osproc
 
 #[
 Based on these instructions:
@@ -41,6 +41,7 @@ let hash = paramStr(2) # "2019-11-27-version-1-0-c8998c4"
 const
   baseUrl = "https://github.com/nim-lang/nightlies/releases/download/"
   hotPatch = "-1"
+  ourDownloadDir = "/var/www/nim-lang.org/download"
 
 proc exec(cmd: string) =
   if execShellCmd(cmd) != 0: quit("FAILURE: " & cmd)
@@ -65,7 +66,7 @@ proc dest(suffix: string): string =
   result = "nim-" & nimver & suffix
 
 proc downloadTarballs =
-  withDir("/var/www/nim-lang.org/download"):
+  withDir(ourDownloadDir):
     # Unix tarball:
     wget(dest ".tar.xz", source ".tar.xz")
 
@@ -114,6 +115,52 @@ proc buildTarballs =
     exec(&"mv nim-{nimver}_copy.tar.gz nim-{nimver}.tar.gz")
     exec(&"sha256sum nim-{nimver}.tar.gz > nim-{nimver}.tar.gz.sha256")
 
+proc execCleanPath*(cmd: string,
+                   additionalPath = ""; errorcode: int = QuitFailure) =
+  # simulate a poor man's virtual environment
+  let prevPath = getEnv("PATH")
+  when defined(windows):
+    let cleanPath = r"$1\system32;$1;$1\System32\Wbem" % getEnv"SYSTEMROOT"
+  else:
+    const cleanPath = r"/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin"
+  putEnv("PATH", cleanPath & PathSep & additionalPath)
+  echo(cmd)
+  if execShellCmd(cmd) != 0: quit("FAILURE", errorcode)
+  putEnv("PATH", prevPath)
+
+proc testSourceTarball =
+  let tarball = dest(".tar.xz")
+
+  let oldCurrentDir = getCurrentDir()
+  try:
+    let destDir = getTempDir()
+    copyFile(ourDownloadDir / tarball,
+             destDir / tarball)
+    setCurrentDir(destDir)
+    execCleanPath("tar -xJf " & tarball)
+    setCurrentDir("nim-" & nimver)
+    execCleanPath("sh build.sh")
+    # first test: try if './bin/nim --version' outputs something sane:
+    let output = execProcess("./bin/nim --version").splitLines
+    if output.len > 0 and output[0].contains(nimver):
+      echo "Version check: success"
+      execCleanPath("./bin/nim c koch.nim")
+      execCleanPath("./koch boot -d:release", destDir / "bin")
+      # check the docs build:
+      execCleanPath("./koch docs", destDir / "bin")
+      # check nimble builds:
+      execCleanPath("./koch tools")
+      # check the tests work:
+      putEnv("NIM_EXE_NOT_IN_PATH", "NOT_IN_PATH")
+      execCleanPath("./koch tests --nim:./bin/nim cat megatest", destDir / "bin")
+
+      # check that a simple nimble test works:
+      execCleanPath("./bin/nimble install karax", "./bin")
+    else:
+      echo "Version check: failure"
+  finally:
+    setCurrentDir oldCurrentDir
+
 proc updateStableChannel =
   # Update the stable channel:
   withDir("/var/www/nim-lang.org/channels"):
@@ -124,6 +171,7 @@ proc main =
   downloadTarballs()
   updateLinks()
   buildTarballs()
+  testSourceTarball()
   updateStableChannel()
 
 main()
