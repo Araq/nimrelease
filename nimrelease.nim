@@ -178,6 +178,9 @@ proc updateStableChannel =
     let oldVersion = try: readFile("stable") except: "0.0.0"
     if isNewerVersion(nimver, oldVersion):
       writeFile("stable", nimver & "\n")
+      echo "New latest stable release is: ", nimver
+    else:
+      echo "There is a different latest stable release: ", oldVersion
 
 builddocs()
 downloadTarballs()
