@@ -40,7 +40,7 @@ let hash = paramStr(2) # "2019-11-27-version-1-0-c8998c4"
 
 const
   baseUrl = "https://github.com/nim-lang/nightlies/releases/download/"
-  hotPatch = "-1"
+  hotPatch = "" # "-1"
   ourDownloadDir = "/var/www/nim-lang.org/download"
 
 proc exec(cmd: string) =
@@ -165,7 +165,8 @@ proc testSourceTarball =
       execCleanPath("./koch tests --nim:./bin/nim cat megatest", destDir / "bin")
 
       # check that a simple nimble test works:
-      execCleanPath("./bin/nimble install karax", "./bin")
+      let nimExe = getCurrentDir() / "bin/nim"
+      execCleanPath(&"./bin/nimble install -y --nim:{nimExe} npeg", nimExe)
     else:
       echo "Version check: failure"
   finally:
@@ -174,16 +175,13 @@ proc testSourceTarball =
 proc updateStableChannel =
   # Update the stable channel:
   withDir("/var/www/nim-lang.org/channels"):
-    let oldVersion = readFile("stable")
+    let oldVersion = try: readFile("stable") except: "0.0.0"
     if isNewerVersion(nimver, oldVersion):
       writeFile("stable", nimver & "\n")
 
-proc main =
-  builddocs()
-  downloadTarballs()
-  updateLinks()
-  buildTarballs()
-  testSourceTarball()
-  updateStableChannel()
-
-main()
+builddocs()
+downloadTarballs()
+updateLinks()
+buildTarballs()
+testSourceTarball()
+updateStableChannel()
