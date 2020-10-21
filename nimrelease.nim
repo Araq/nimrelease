@@ -78,6 +78,24 @@ proc downloadTarballs =
     wget(dest "-linux_x32.tar.xz", source "-linux_x32.tar.xz")
     wget(dest "-linux_x64.tar.xz", source "-linux_x64.tar.xz")
 
+proc isNewerVersion(a, b: string): bool =
+  var amajor, aminor, apatch, bmajor, bminor, bpatch: int
+  assert scanf(a, "$i.$i.$i", amajor, aminor, apatch)
+  assert scanf(b, "$i.$i.$i", bmajor, bminor, bpatch)
+  result = (amajor, aminor, apatch) > (bmajor, bminor, bpatch)
+
+proc execCleanPath*(cmd: string; additionalPath = "") =
+  # simulate a poor man's virtual environment
+  let prevPath = getEnv("PATH")
+  when defined(windows):
+    let cleanPath = r"$1\system32;$1;$1\System32\Wbem" % getEnv"SYSTEMROOT"
+  else:
+    const cleanPath = r"/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:."
+  putEnv("PATH", cleanPath & PathSep & additionalPath)
+  echo(cmd)
+  if execShellCmd(cmd) != 0: quit("FAILURE: " & cmd)
+  putEnv("PATH", prevPath)
+
 proc builddocs() =
   var major = ""
   var minor = ""
@@ -93,11 +111,15 @@ proc builddocs() =
     exec(&"git pull origin version-{major}-{minor}")
 
     # build a version of 'koch' that uses the proper version number
-    exec("nim c koch.nim")
+    execCleanPath("../nim-1.2.6/bin/nim c koch.nim")
+
+    execCleanPath("../nim-1.2.6/bin/nim c compiler/nim.nim")
+    copyFileWithPermissions("compiler/nim", "bin/nim")
+
     # build a version of 'nim' that uses the proper version number
-    exec(dotslash & "koch boot -d:release")
+    execCleanPath(dotslash & "koch boot -d:release")
     # build the documentation:
-    exec(dotslash & "koch docs0")
+    execCleanPath(dotslash & "koch docs0")
     copyDir("web/upload/" & nimver, "/var/www/nim-lang.org/" & nimver)
 
 proc updateLinks =
@@ -115,20 +137,8 @@ proc buildTarballs =
     exec(&"mv nim-{nimver}_copy.tar.gz nim-{nimver}.tar.gz")
     exec(&"sha256sum nim-{nimver}.tar.gz > nim-{nimver}.tar.gz.sha256")
 
-proc execCleanPath*(cmd: string,
-                   additionalPath = ""; errorcode: int = QuitFailure) =
-  # simulate a poor man's virtual environment
-  let prevPath = getEnv("PATH")
-  when defined(windows):
-    let cleanPath = r"$1\system32;$1;$1\System32\Wbem" % getEnv"SYSTEMROOT"
-  else:
-    const cleanPath = r"/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin"
-  putEnv("PATH", cleanPath & PathSep & additionalPath)
-  echo(cmd)
-  if execShellCmd(cmd) != 0: quit("FAILURE", errorcode)
-  putEnv("PATH", prevPath)
-
 proc testSourceTarball =
+  # Todo: Test for binaries inside the other tarballs.
   let tarball = dest(".tar.xz")
 
   let oldCurrentDir = getCurrentDir()
@@ -164,7 +174,9 @@ proc testSourceTarball =
 proc updateStableChannel =
   # Update the stable channel:
   withDir("/var/www/nim-lang.org/channels"):
-    writeFile("stable", nimver & "\n")
+    let oldVersion = readFile("stable")
+    if isNewerVersion(nimver, oldVersion):
+      writeFile("stable", nimver & "\n")
 
 proc main =
   builddocs()
