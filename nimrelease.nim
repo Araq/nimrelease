@@ -180,6 +180,7 @@ proc updateStableChannel =
   withDir("/var/www/nim-lang.org/channels"):
     let oldVersion = try: readFile("stable") except: "0.0.0"
     if isNewerVersion(nimver, oldVersion):
+      updateLinks()
       writeFile("stable", nimver & "\n")
       echo "New latest stable release is: ", nimver
     else:
@@ -187,7 +188,6 @@ proc updateStableChannel =
 
 builddocs()
 downloadTarballs()
-updateLinks()
 buildTarballs()
 testSourceTarball()
 updateStableChannel()
