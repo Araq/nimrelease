@@ -107,22 +107,19 @@ proc builddocs() =
   const dotslash = when defined(posix): "./" else: ""
 
   withDir(&"nimdocs-{nimver}"):
+    if not fileExists("web/upload/" & nimver & "/manual.html"):
+      copyFileWithPermissions("../csources/bin/nim", "bin/nim")
 
-    copyFileWithPermissions("../csources/bin/nim", "bin/nim")
+      exec(&"git checkout version-{major}-{minor}")
+      exec(&"git pull origin version-{major}-{minor}")
 
-    exec(&"git checkout version-{major}-{minor}")
-    exec(&"git pull origin version-{major}-{minor}")
+      # build a version of 'koch' that uses the proper version number
+      execCleanPath("bin/nim c koch.nim")
 
-    # build a version of 'koch' that uses the proper version number
-    execCleanPath("bin/nim c koch.nim")
-
-    execCleanPath("bin/nim c compiler/nim.nim")
-    copyFileWithPermissions("compiler/nim", "bin/nim")
-
-    # build a version of 'nim' that uses the proper version number
-    execCleanPath(dotslash & "koch boot -d:release")
-    # build the documentation:
-    execCleanPath(dotslash & "koch docs0")
+      # build a version of 'nim' that uses the proper version number
+      execCleanPath(dotslash & "koch boot -d:release")
+      # build the documentation:
+      execCleanPath(dotslash & "koch docs0")
     copyDir("web/upload/" & nimver, "/var/www/nim-lang.org/" & nimver)
 
 proc updateLinks =
