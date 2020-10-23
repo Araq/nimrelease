@@ -107,13 +107,16 @@ proc builddocs() =
   const dotslash = when defined(posix): "./" else: ""
 
   withDir(&"nimdocs-{nimver}"):
+
+    copyFileWithPermissions("../csources/bin/nim", "bin/nim")
+
     exec(&"git checkout version-{major}-{minor}")
     exec(&"git pull origin version-{major}-{minor}")
 
     # build a version of 'koch' that uses the proper version number
-    execCleanPath("../nim-1.2.6/bin/nim c koch.nim")
+    execCleanPath("bin/nim c koch.nim")
 
-    execCleanPath("../nim-1.2.6/bin/nim c compiler/nim.nim")
+    execCleanPath("bin/nim c compiler/nim.nim")
     copyFileWithPermissions("compiler/nim", "bin/nim")
 
     # build a version of 'nim' that uses the proper version number
