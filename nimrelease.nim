@@ -32,19 +32,35 @@ Update the ``stable`` channel:
 
 ]#
 
-if os.paramCount() <= 1:
-  quit "Usage: nimrelease $version $hash"
+if os.paramCount() <= 2:
+  quit """Usage: nimrelease command $version $hash
 
-let nimver = paramStr(1)
-let hash = paramStr(2) # "2019-11-27-version-1-0-c8998c4"
+command is one of the following:
+
+  all  -- run all nimrelease steps
+
+Steps:
+
+  1. docs -- build the release documentation
+  2. download  -- download the tarballs from the nightly builds
+  3. build -- build the tarballs
+  4. test  -- test the tarballs
+  5. update -- update the stable channel
+"""
+
+let cmd = paramStr(1)
+let nimver = paramStr(2)
+let hash = paramStr(3) # "2019-11-27-version-1-0-c8998c4"
 
 const
   baseUrl = "https://github.com/nim-lang/nightlies/releases/download/"
   hotPatch = "" # "-1"
   ourDownloadDir = "/var/www/nim-lang.org/download"
 
+var phase = ""
+
 proc exec(cmd: string) =
-  if execShellCmd(cmd) != 0: quit("FAILURE: " & cmd)
+  if execShellCmd(cmd) != 0: quit("FAILURE: " & cmd & "\nPHASE: " & phase)
 
 template withDir(dir, body) =
   let old = getCurrentDir()
@@ -66,6 +82,7 @@ proc dest(suffix: string): string =
   result = "nim-" & nimver & suffix
 
 proc downloadTarballs =
+  phase = "download"
   withDir(ourDownloadDir):
     # Unix tarball:
     wget(dest ".tar.xz", source ".tar.xz")
@@ -97,6 +114,7 @@ proc execCleanPath*(cmd: string; additionalPath = "") =
   putEnv("PATH", prevPath)
 
 proc builddocs() =
+  phase = "docs"
   var major = ""
   var minor = ""
   assert scanf(nimver, "$+.$+.", major, minor)
@@ -130,6 +148,7 @@ proc updateLinks =
     exec("ls -la | grep \"docs\"")
 
 proc buildTarballs =
+  phase = "build"
   withDir("/var/www/nim-lang.org/download"):
     exec(&"cp nim-{nimver}.tar.xz nim-{nimver}_copy.tar.xz")
     exec(&"unxz nim-{nimver}_copy.tar.xz")
@@ -138,6 +157,7 @@ proc buildTarballs =
     exec(&"sha256sum nim-{nimver}.tar.gz > nim-{nimver}.tar.gz.sha256")
 
 proc testSourceTarball =
+  phase = "test"
   # Todo: Test for binaries inside the other tarballs.
   let tarball = dest(".tar.xz")
 
@@ -173,6 +193,7 @@ proc testSourceTarball =
     setCurrentDir oldCurrentDir
 
 proc updateStableChannel =
+  phase = "update"
   # Update the stable channel:
   withDir("/var/www/nim-lang.org/channels"):
     let oldVersion = try: readFile("stable") except: "0.0.0"
@@ -183,8 +204,18 @@ proc updateStableChannel =
     else:
       echo "There is a different latest stable release: ", oldVersion
 
-builddocs()
-downloadTarballs()
-buildTarballs()
-testSourceTarball()
-updateStableChannel()
+case cmd
+of "0", "all":
+  builddocs()
+  downloadTarballs()
+  buildTarballs()
+  testSourceTarball()
+  updateStableChannel()
+
+of "1", "docs":
+  builddocs()
+of "2", "download":
+  downloadTarballs()
+of "3", "build": buildTarballs()
+of "4", "test": testSourceTarball()
+of "5", "update": updateStableChannel()
