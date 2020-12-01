@@ -113,6 +113,16 @@ proc execCleanPath*(cmd: string; additionalPath = "") =
   if execShellCmd(cmd) != 0: quit("FAILURE: " & cmd)
   putEnv("PATH", prevPath)
 
+proc patchNimdocCfg() =
+  # DigitalOcean is a masterpiece of engineering. It manages to cache
+  # unrelated CSS files for weeks. We workaround this here.
+  const
+    lineToPatch = """<link rel="stylesheet" type="text/css" href="$nimdoccss">"""
+    patchedLine = """<link rel="stylesheet" type="text/css" href="$nimdoccss?reloadcss=hack">"""
+    cfg = "config/nimdoc.cfg"
+  let content = readFile(cfg)
+  writeFile(cfg, content.replace(lineToPatch, patchedLine))
+
 proc builddocs() =
   phase = "docs"
   var major = ""
@@ -130,6 +140,8 @@ proc builddocs() =
 
       exec(&"git checkout version-{major}-{minor}")
       exec(&"git pull origin version-{major}-{minor}")
+
+      patchNimdocCfg()
 
       # build a version of 'koch' that uses the proper version number
       execCleanPath("bin/nim c koch.nim")
