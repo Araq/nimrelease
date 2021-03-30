@@ -1,3 +1,20 @@
+## Tool to build a Nim release package for diverse OSes.
+
+#[
+
+The Windows OpenSSL libraries that we ship via dlls.7z or windeps.7z
+are taken from::
+
+  https://curl.se/windows/dl-7.75.0_5/openssl-1.1.1k_5-win64-mingw.zip
+  https://curl.se/windows/dl-7.75.0_5/openssl-1.1.1k_5-win32-mingw.zip
+  (coming from https://github.com/curl/curl-for-win#binary-package-downloads)
+
+
+Note the Windows MingW that we "ship" via finish.exe is based on::
+
+  https://jmeubank.github.io/tdm-gcc/articles/2020-03/9.2.0-release
+
+]#
 
 import os, strformat, strscans, strutils, osproc
 
