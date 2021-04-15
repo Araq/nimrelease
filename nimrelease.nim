@@ -16,7 +16,7 @@ Note the Windows MingW that we "ship" via finish.exe is based on::
 
 ]#
 
-import os, strformat, strscans, strutils, osproc
+import os, strformat, strscans, strutils, osproc, cpuinfo
 
 #[
 Based on these instructions:
@@ -236,6 +236,9 @@ proc updateStableChannel =
     else:
       echo "There is a different latest stable release: ", oldVersion
 
+proc showNumberOfCpus() =
+  echo cpuinfo.countProcessors()
+
 case cmd
 of "0", "all":
   builddocs()
@@ -251,3 +254,4 @@ of "2", "download":
 of "3", "build": buildTarballs()
 of "4", "test": testSourceTarball()
 of "5", "update": updateStableChannel()
+of "cpus": showNumberOfCpus()
