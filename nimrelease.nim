@@ -210,8 +210,8 @@ proc testSourceTarball =
         # in the very first step. To speed-up the build, this is now disabled.
         # check the docs build:
         execCleanPath("./koch docs", destDir / "bin")
-      # check nimble builds:
-      execCleanPath("./koch tools -d:release")
+        # check nimble builds:
+        execCleanPath("./koch tools -d:release")
       # check the tests work:
       putEnv("NIM_EXE_NOT_IN_PATH", "NOT_IN_PATH")
       execCleanPath("./koch tests --nim:./bin/nim cat macros", destDir / "bin")
