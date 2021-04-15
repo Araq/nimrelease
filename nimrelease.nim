@@ -205,8 +205,11 @@ proc testSourceTarball =
       echo "Version check: success"
       execCleanPath("./bin/nim c koch.nim")
       execCleanPath("./koch boot -d:release", destDir / "bin")
-      # check the docs build:
-      execCleanPath("./koch docs", destDir / "bin")
+      when false:
+        # This takes a lot of time and we already build the documentation
+        # in the very first step. To speed-up the build, this is now disabled.
+        # check the docs build:
+        execCleanPath("./koch docs", destDir / "bin")
       # check nimble builds:
       execCleanPath("./koch tools")
       # check the tests work:
