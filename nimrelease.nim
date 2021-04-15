@@ -211,7 +211,7 @@ proc testSourceTarball =
         # check the docs build:
         execCleanPath("./koch docs", destDir / "bin")
       # check nimble builds:
-      execCleanPath("./koch tools")
+      execCleanPath("./koch tools -d:release")
       # check the tests work:
       putEnv("NIM_EXE_NOT_IN_PATH", "NOT_IN_PATH")
       execCleanPath("./koch tests --nim:./bin/nim cat macros", destDir / "bin")
