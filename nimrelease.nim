@@ -9,8 +9,14 @@ are taken from::
   https://curl.se/windows/dl-7.75.0_5/openssl-1.1.1k_5-win32-mingw.zip
   (coming from https://github.com/curl/curl-for-win#binary-package-downloads)
 
+Note the Windows MingW that we "ship" via finish.exe post 2021-05-15 directly
+taken from (mirrored)::
 
-Note the Windows MingW that we "ship" via finish.exe is based on::
+  https://github.com/brechtsanders/winlibs_mingw/releases/download/11.1.0-12.0.0-8.0.2-r1/winlibs-x86_64-posix-seh-gcc-11.1.0-mingw-w64-8.0.2-r1.7z
+  https://github.com/brechtsanders/winlibs_mingw/releases/download/11.1.0-12.0.0-8.0.2-r1/winlibs-i686-posix-dwarf-gcc-11.1.0-mingw-w64-8.0.2-r1.7z
+
+
+Note the Windows MingW that we "ship" via finish.exe pre 1.4.8 (2021-05-15) is based on::
 
   https://jmeubank.github.io/tdm-gcc/articles/2020-03/9.2.0-release
 
