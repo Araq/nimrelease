@@ -222,6 +222,7 @@ proc testSourceTarball =
       putEnv("NIM_EXE_NOT_IN_PATH", "NOT_IN_PATH")
       execCleanPath("./koch tests --nim:./bin/nim cat macros", destDir / "bin")
 
+      execCleanPath("./koch nimble -d:release")
       # check that a simple nimble test works:
       let nimExe = getCurrentDir() / "bin/nim"
       execCleanPath(&"./bin/nimble install -y --nim:{nimExe} npeg", nimExe)
