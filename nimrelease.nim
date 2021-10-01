@@ -172,7 +172,7 @@ proc builddocs() =
       # build a version of 'nim' that uses the proper version number
       execCleanPath(dotslash & "koch boot -d:release")
       # build the documentation:
-      execCleanPath(dotslash & "koch docs0")
+      execCleanPath(dotslash & "koch docs0 --docCmd:skip")
     copyDir("web/upload/" & nimver, "/var/www/nim-lang.org/" & nimver)
 
 proc updateLinks =
@@ -215,7 +215,7 @@ proc testSourceTarball =
         # This takes a lot of time and we already build the documentation
         # in the very first step. To speed-up the build, this is now disabled.
         # check the docs build:
-        execCleanPath("./koch docs", destDir / "bin")
+        execCleanPath("./koch docs --docCmd:skip", destDir / "bin")
         # check nimble builds:
         execCleanPath("./koch tools -d:release")
       # check the tests work:
