@@ -179,12 +179,11 @@ proc copyDocs() =
   var major = ""
   var minor = ""
   assert scanf(nimver, "$+.$+.", major, minor)
-  let nimdocs = &"nimdocs-{nimver}"
 
   let toUnpack = ourDownloadDir / dest "_x64.zip"
   let tmpNim = &"nim-{nimver}-deleteme"
   exec("unzip " & quoteShell(toUnpack) & " -d " & tmpNim)
-  copyDir(tmpNim / "doc/html", "/var/www/nim-lang.org/" & nimver)
+  copyDir(tmpNim / &"nim-{nimver}" / "doc/html", "/var/www/nim-lang.org/" & nimver)
   removeDir(tmpNim)
 
 proc updateLinks =
