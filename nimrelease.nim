@@ -64,11 +64,10 @@ command is one of the following:
 
 Steps:
 
-  1. docs -- build the release documentation
-  2. download  -- download the tarballs from the nightly builds
-  3. build -- build the tarballs
-  4. test  -- test the tarballs
-  5. update -- update the stable channel
+  1. download  -- download the tarballs from the nightly builds
+  2. build -- build the tarballs
+  3. test  -- test the tarballs
+  4. update -- update the stable channel
 """
 
 let cmd = paramStr(1)
@@ -175,6 +174,19 @@ proc builddocs() =
       execCleanPath(dotslash & "koch docs0 --docCmd:skip")
     copyDir("web/upload/" & nimver, "/var/www/nim-lang.org/" & nimver)
 
+proc copyDocs() =
+  phase = "docs"
+  var major = ""
+  var minor = ""
+  assert scanf(nimver, "$+.$+.", major, minor)
+  let nimdocs = &"nimdocs-{nimver}"
+
+  let toUnpack = ourDownloadDir / dest "_x64.zip"
+  let tmpNim = &"nim-{nimver}-deleteme"
+  exec("unzip " & quoteShell(toUnpack) & " -d " & tmpNim)
+  copyDir(tmpNim / "doc/html", "/var/www/nim-lang.org/" & nimver)
+  removeDir(tmpNim)
+
 proc updateLinks =
   # Updating links to the current docs:
   withDir("/var/www/nim-lang.org/"):
@@ -248,17 +260,18 @@ proc showNumberOfCpus() =
 
 case cmd
 of "0", "all":
-  builddocs()
+  #builddocs()
   downloadTarballs()
+  copyDocs()
   buildTarballs()
   testSourceTarball()
   updateStableChannel()
-
-of "1", "docs":
-  builddocs()
-of "2", "download":
+  #of "1", "docs":
+  #  builddocs()
+of "1", "download":
   downloadTarballs()
-of "3", "build": buildTarballs()
-of "4", "test": testSourceTarball()
-of "5", "update": updateStableChannel()
+  copyDocs()
+of "2", "build": buildTarballs()
+of "3", "test": testSourceTarball()
+of "4", "update": updateStableChannel()
 of "cpus": showNumberOfCpus()
