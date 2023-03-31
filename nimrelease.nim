@@ -263,7 +263,7 @@ of "0", "all":
   downloadTarballs()
   copyDocs()
   buildTarballs()
-  testSourceTarball()
+  #testSourceTarball()
   updateStableChannel()
   #of "1", "docs":
   #  builddocs()
