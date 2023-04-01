@@ -121,7 +121,11 @@ proc isNewerVersion(a, b: string): bool =
   var amajor, aminor, apatch, bmajor, bminor, bpatch: int
   assert scanf(a, "$i.$i.$i", amajor, aminor, apatch)
   assert scanf(b, "$i.$i.$i", bmajor, bminor, bpatch)
-  result = (amajor, aminor, apatch) > (bmajor, bminor, bpatch)
+  if apatch mod 2 == 1:
+    # release candidate: is not newer than latest stable release
+    result = false
+  else:
+    result = (amajor, aminor, apatch) > (bmajor, bminor, bpatch)
 
 proc execCleanPath*(cmd: string; additionalPath = "") =
   # simulate a poor man's virtual environment
